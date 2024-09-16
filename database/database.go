@@ -70,6 +70,8 @@ func New(ctx context.Context, providers ...Provider) (Database, error) {
 						slog.String("instance", instance.Name),
 					)
 
+					instance.GPU.MeasureTFLOPS()
+
 					wg.Go(func() error {
 
 						logger.Debug("gathering prices")

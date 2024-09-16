@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
 
 	"github.com/pkg/errors"
 	probing "github.com/prometheus-community/pro-bing"
@@ -12,9 +13,9 @@ import (
 type Region struct {
 	endpoint string
 	Latency  struct {
-		Avg int64 `json:"avg"`
-		Min int64 `json:"min"`
-		Max int64 `json:"max"`
+		Avg uint64 `json:"avg"`
+		Min uint64 `json:"min"`
+		Max uint64 `json:"max"`
 	} `json:"latency"`
 	Name     string `json:"name"`
 	Provider string `json:"provider"`
@@ -40,14 +41,21 @@ func (r *Region) MeasureLatency(ctx context.Context) error {
 
 	stats := pinger.Statistics()
 
-	r.Latency.Avg = stats.AvgRtt.Milliseconds()
-	r.Latency.Max = stats.MaxRtt.Milliseconds()
-	r.Latency.Min = stats.MinRtt.Milliseconds()
+	r.Latency.Avg = uint64(stats.AvgRtt.Milliseconds())
+	r.Latency.Max = uint64(stats.MaxRtt.Milliseconds())
+	r.Latency.Min = uint64(stats.MinRtt.Milliseconds())
 
 	return nil
 
 }
 
 func (r *Region) String() string {
-	return fmt.Sprintf("%s-%s (%d)", r.Provider, r.Name, r.Latency.Avg)
+
+	var b strings.Builder
+
+	fmt.Fprintf(&b, "📍 %s-%s", r.Provider, r.Name)
+	fmt.Fprintf(&b, "\t🐢 %dms", r.Latency.Avg)
+
+	return b.String()
+
 }

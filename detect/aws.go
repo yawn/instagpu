@@ -108,8 +108,6 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 			instance.GPU.Name = *gpus.Name
 			instance.GPU.Vendor = *gpus.Manufacturer
 
-			instance.MeasureTFLOPS()
-
 			instances = append(instances, instance)
 
 		}

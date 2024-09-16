@@ -1,6 +1,9 @@
 package detect
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type Prices struct {
 	AvailablityZones uint      `json:"availability_zones"`
@@ -23,11 +26,16 @@ func (p *Prices) PTGPIndex() float64 {
 }
 
 func (p *Prices) String() string {
-	return fmt.Sprintf("%s %.2f USD/h (%.2f USD/h <-> %.2f USD/h) over %d AZs",
-		p.Instance.String(),
-		p.Avg,
-		p.Min,
-		p.Max,
-		p.AvailablityZones,
-	)
+
+	var b strings.Builder
+
+	b.WriteString(p.Instance.String())
+
+	fmt.Fprintf(&b, "💰 %.2f USD/h", p.Avg)
+	fmt.Fprintf(&b, "\t▼ %.2f USD/h", p.Min)
+	fmt.Fprintf(&b, "\t▲ %.2f USD/h", p.Max)
+	fmt.Fprintf(&b, "\t🧩 %d AZs", p.AvailablityZones)
+
+	return b.String()
+
 }
