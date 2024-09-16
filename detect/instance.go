@@ -45,7 +45,7 @@ func (i *Instance) MeasureTFLOPS() {
 }
 
 func (i *Instance) String() string {
-	return fmt.Sprintf("%s %s: CPU %d x %s-%s@%.2fGHz; GPU %dGiB plus %dx%s-%s with %dGB; Network: %.2f GiBs)",
+	return fmt.Sprintf("%s %s: CPU %d x %s-%s@%.2fGHz; Memory %dGiB; GPU %dx%s-%s with %dGiB; Network: %.2f GiBs)",
 		i.Region.String(),
 		i.Name,
 		i.Count,
