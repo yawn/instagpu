@@ -4,6 +4,11 @@ package detect
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
+	"slices"
+	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
@@ -21,12 +26,27 @@ func NewAWS(cfg aws.Config) *AWS {
 	}
 }
 
-func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error) {
+func (a *AWS) clientForRegion(region *Region) *ec2.Client {
 
 	cfg := a.cfg.Copy()
 	cfg.Region = region.Name
 
-	client := ec2.NewFromConfig(cfg)
+	return ec2.NewFromConfig(cfg)
+
+}
+
+func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error) {
+
+	logger := slog.Default().With(
+		slog.String("provider", region.Provider),
+		slog.String("region", region.Name),
+	)
+
+	client := a.clientForRegion(region)
+
+	var instances []*Instance
+
+	logger.Info("gathering instance types")
 
 	paginator := ec2.NewDescribeInstanceTypesPaginator(client, &ec2.DescribeInstanceTypesInput{
 		Filters: []types.Filter{
@@ -52,8 +72,6 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 		},
 	})
 
-	var instances []*Instance
-
 	for paginator.HasMorePages() {
 
 		res, err := paginator.NextPage(ctx)
@@ -63,6 +81,10 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 		}
 
 		for _, e := range res.InstanceTypes {
+
+			logger.Debug("gathering instance type data",
+				slog.String("instance-type", string(e.InstanceType)),
+			)
 
 			if len(e.ProcessorInfo.SupportedArchitectures) != 1 {
 				panic("unexpected length of ProcessorInfo.SupportedArchitectures")
@@ -76,7 +98,7 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 				panic("unexpected length of GpuInfo.Gpus")
 			}
 
-			if len(e.NetworkInfo.NetworkCards) != 1 {
+			if len(e.NetworkInfo.NetworkCards) == 0 {
 				panic("unexpected length of NetworkInfo.NetworkCards")
 			}
 
@@ -87,6 +109,7 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 				Memory:     uint64(*e.MemoryInfo.SizeInMiB),
 				Name:       string(e.InstanceType),
 				Network:    float64(*e.NetworkInfo.NetworkCards[0].PeakBandwidthInGbps),
+				Region:     region,
 				Vendor:     *e.ProcessorInfo.Manufacturer,
 			}
 
@@ -98,6 +121,8 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 			instance.GPU.Name = *gpus.Name
 			instance.GPU.Vendor = *gpus.Manufacturer
 
+			instance.MeasureTFLOPS()
+
 			instances = append(instances, instance)
 
 		}
@@ -108,11 +133,13 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 
 }
 
-func (a *AWS) Regions(ctx context.Context) (Regions, error) {
+func (a *AWS) Regions(ctx context.Context) ([]*Region, error) {
 
 	const PROVIDER = "aws"
 
 	client := ec2.NewFromConfig(a.cfg)
+
+	var regions []*Region
 
 	res, err := client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{
 		Filters: []types.Filter{
@@ -130,8 +157,6 @@ func (a *AWS) Regions(ctx context.Context) (Regions, error) {
 		return nil, errors.Wrapf(err, "failed to enumerate regions")
 	}
 
-	var regions Regions
-
 	for _, region := range res.Regions {
 
 		regions = append(regions, &Region{
@@ -142,10 +167,88 @@ func (a *AWS) Regions(ctx context.Context) (Regions, error) {
 
 	}
 
-	if err := regions.MeasureLatency(ctx); err != nil {
-		return nil, errors.Wrapf(err, "failed to measure region latency")
+	return regions, nil
+
+}
+
+func (a *AWS) Prices(ctx context.Context, region *Region, instance *Instance) (*Prices, error) {
+
+	// looking back a week
+	const WINDOW = -24 * 7
+
+	logger := slog.Default().With(
+		slog.String("instance", instance.Name),
+		slog.String("provider", region.Provider),
+		slog.String("region", region.Name),
+	)
+
+	client := a.clientForRegion(region)
+
+	var (
+		azs    = make(map[string]any)
+		prices []float64
+	)
+
+	logger.Info("gathering prices")
+
+	window := time.Now().Add(time.Duration(WINDOW) * time.Hour)
+
+	paginator := ec2.NewDescribeSpotPriceHistoryPaginator(client, &ec2.DescribeSpotPriceHistoryInput{
+		InstanceTypes: []types.InstanceType{
+			types.InstanceType(instance.Name),
+		},
+		ProductDescriptions: []string{"Linux/UNIX"},
+		StartTime:           &window,
+	})
+
+	for paginator.HasMorePages() {
+
+		res, err := paginator.NextPage(ctx)
+
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to enumerate instances prices")
+		}
+
+		for _, e := range res.SpotPriceHistory {
+
+			azs[*e.AvailabilityZone] = struct{}{}
+
+			p, err := strconv.ParseFloat(*e.SpotPrice, 64)
+
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse price %q", *e.SpotPrice)
+			}
+
+			prices = append(prices, p)
+
+		}
+
 	}
 
-	return regions, nil
+	if len(prices) > 0 {
+
+		price := &Prices{
+			AvailablityZones: uint(len(azs)),
+			Instance:         instance,
+		}
+
+		var avg float64
+
+		for _, price := range prices {
+			avg += price
+		}
+
+		price.Avg = avg / float64(len(prices))
+
+		slices.Sort(prices)
+
+		price.Min = prices[0]
+		price.Max = prices[len(prices)-1]
+
+		return price, nil
+
+	}
+
+	return nil, fmt.Errorf("no prices found")
 
 }
