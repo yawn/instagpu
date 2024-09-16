@@ -4,14 +4,15 @@
 package database
 
 import (
-	"container/heap"
 	"context"
 	"encoding/json"
 	"log/slog"
 	"os"
+	"slices"
 	"sync"
 
 	"github.com/pkg/errors"
+	"github.com/yawn/spottty/database/filter"
 	"github.com/yawn/spottty/detect"
 	"golang.org/x/sync/errgroup"
 )
@@ -116,54 +117,53 @@ func New(ctx context.Context, providers ...Provider) (Database, error) {
 
 }
 
-func (d Database) Filter(max int, filters ...Filter) []*Result {
+func (d Database) Filter(max uint16, filters ...filter.Filter) []*Result {
 
 	var (
-		q       = make(queue, 0)
 		results []*Result
+		top     float64
 	)
 
 	for _, prices := range d {
 
-		e := &Result{
+		results = append(results, &Result{
 			Prices: prices,
 			Score:  prices.PTGPIndex(),
-		}
-
-		heap.Push(&q, e)
+		})
 
 	}
 
-	for _, prices := range q {
-		prices.Relative = prices.Score / q[0].Score
+	if len(results) == 0 {
+		return nil
 	}
 
-	for _, result := range q {
+	slices.SortFunc(results, func(a, b *Result) int {
+		return int(b.Score - a.Score)
+	})
 
-		var skip bool
+	top = results[0].Score
+
+	for idx, result := range results {
+		result.Index = idx
+		result.IndexMax = len(results) - 1
+		result.Relative = result.Score / top
+	}
+
+	results = slices.DeleteFunc(results, func(result *Result) bool {
 
 		for _, filter := range filters {
 
-			if ok := filter(result.Prices); !ok {
-				skip = true
-				break
+			if !filter(result.Prices) {
+				return true
 			}
 
 		}
 
-		if !skip {
+		return false
 
-			results = append(results, result)
+	})
 
-			if len(results) == max {
-				break
-			}
-
-		}
-
-	}
-
-	return results
+	return results[:min(int(max), len(results))]
 
 }
 
