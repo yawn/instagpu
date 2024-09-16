@@ -3,6 +3,7 @@ package detect
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/pkg/errors"
 	probing "github.com/prometheus-community/pro-bing"
@@ -19,7 +20,11 @@ type Region struct {
 	Provider string
 }
 
-func (r *Region) measureLatency(ctx context.Context) error {
+func (r *Region) MeasureLatency(ctx context.Context) error {
+
+	slog.Debug("measuring latency",
+		slog.String("region", r.Name),
+	)
 
 	pinger, err := probing.NewPinger(r.endpoint)
 
