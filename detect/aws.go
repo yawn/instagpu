@@ -249,6 +249,6 @@ func (a *AWS) Prices(ctx context.Context, region *Region, instance *Instance) (*
 
 	}
 
-	return nil, fmt.Errorf("no prices found")
+	return nil, nil
 
 }
