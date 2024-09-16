@@ -4,8 +4,6 @@ package detect
 
 import (
 	"context"
-	"fmt"
-	"log/slog"
 	"slices"
 	"strconv"
 	"time"
@@ -37,16 +35,9 @@ func (a *AWS) clientForRegion(region *Region) *ec2.Client {
 
 func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error) {
 
-	logger := slog.Default().With(
-		slog.String("provider", region.Provider),
-		slog.String("region", region.Name),
-	)
-
 	client := a.clientForRegion(region)
 
 	var instances []*Instance
-
-	logger.Info("gathering instance types")
 
 	paginator := ec2.NewDescribeInstanceTypesPaginator(client, &ec2.DescribeInstanceTypesInput{
 		Filters: []types.Filter{
@@ -81,10 +72,6 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 		}
 
 		for _, e := range res.InstanceTypes {
-
-			logger.Debug("gathering instance type data",
-				slog.String("instance-type", string(e.InstanceType)),
-			)
 
 			if len(e.ProcessorInfo.SupportedArchitectures) != 1 {
 				panic("unexpected length of ProcessorInfo.SupportedArchitectures")
@@ -133,9 +120,12 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 
 }
 
-func (a *AWS) Regions(ctx context.Context) ([]*Region, error) {
-
+func (a *AWS) Name() string {
 	const PROVIDER = "aws"
+	return PROVIDER
+}
+
+func (a *AWS) Regions(ctx context.Context) ([]*Region, error) {
 
 	client := ec2.NewFromConfig(a.cfg)
 
@@ -162,7 +152,7 @@ func (a *AWS) Regions(ctx context.Context) ([]*Region, error) {
 		regions = append(regions, &Region{
 			Name:     *region.RegionName,
 			endpoint: *region.Endpoint,
-			Provider: PROVIDER,
+			Provider: a.Name(),
 		})
 
 	}
@@ -176,20 +166,12 @@ func (a *AWS) Prices(ctx context.Context, region *Region, instance *Instance) (*
 	// looking back a week
 	const WINDOW = -24 * 7
 
-	logger := slog.Default().With(
-		slog.String("instance", instance.Name),
-		slog.String("provider", region.Provider),
-		slog.String("region", region.Name),
-	)
-
 	client := a.clientForRegion(region)
 
 	var (
 		azs    = make(map[string]any)
 		prices []float64
 	)
-
-	logger.Info("gathering prices")
 
 	window := time.Now().Add(time.Duration(WINDOW) * time.Hour)
 
