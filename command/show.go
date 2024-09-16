@@ -34,7 +34,7 @@ var showCmd = &cobra.Command{
 		if showProviderAWS {
 
 			var (
-				region  = os.Getenv("AWS_PROFILE")
+				region  = os.Getenv("AWS_REGION")
 				profile = os.Getenv("AWS_PROFILE")
 			)
 
