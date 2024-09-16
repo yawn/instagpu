@@ -4,15 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"os"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/yawn/spottty/database"
 	"github.com/yawn/spottty/database/filter"
-	"github.com/yawn/spottty/detect"
+	"github.com/yawn/spottty/detect/aws"
 )
 
 var showCache bool
@@ -33,26 +31,13 @@ var showCmd = &cobra.Command{
 
 		if showProviderAWS {
 
-			var (
-				region  = os.Getenv("AWS_REGION")
-				profile = os.Getenv("AWS_PROFILE")
-			)
-
-			slog.Info("configuring aws provider",
-				slog.String("region", region),
-				slog.String("profile", profile),
-			)
-
-			cfg, err := config.LoadDefaultConfig(ctx,
-				config.WithRegion(region),
-				config.WithSharedConfigProfile(profile),
-			)
+			provider, err := aws.New(ctx)
 
 			if err != nil {
 				return errors.Wrapf(err, "failed to configure aws")
 			}
 
-			providers = append(providers, detect.NewAWS(cfg))
+			providers = append(providers, provider)
 
 		}
 

@@ -11,7 +11,7 @@ import (
 )
 
 type Region struct {
-	endpoint string
+	Endpoint string
 	Latency  struct {
 		Avg uint64 `json:"avg"`
 		Min uint64 `json:"min"`
@@ -27,7 +27,7 @@ func (r *Region) MeasureLatency(ctx context.Context) error {
 		slog.String("region", r.Name),
 	)
 
-	pinger, err := probing.NewPinger(r.endpoint)
+	pinger, err := probing.NewPinger(r.Endpoint)
 
 	if err != nil {
 		return errors.Wrapf(err, "failed to setup pinging region %q", r.Name)

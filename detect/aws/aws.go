@@ -1,30 +1,65 @@
-//xgo:build aws
-
-package detect
+package aws
 
 import (
 	"context"
+	"log/slog"
+	"os"
 	"slices"
 	"strconv"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	"github.com/yawn/spottty/detect"
 )
+
+const NAME = "aws"
 
 type AWS struct {
 	cfg aws.Config
 }
 
-func NewAWS(cfg aws.Config) *AWS {
+func DefaultConfig(ctx context.Context) (aws.Config, error) {
+
+	var (
+		region  = os.Getenv("AWS_REGION")
+		profile = os.Getenv("AWS_PROFILE")
+	)
+
+	slog.Info("configuring aws provider",
+		slog.String("region", region),
+		slog.String("profile", profile),
+	)
+
+	return config.LoadDefaultConfig(ctx,
+		config.WithRegion(region),
+		config.WithSharedConfigProfile(profile),
+	)
+
+}
+
+func New(ctx context.Context) (*AWS, error) {
+
+	cfg, err := DefaultConfig(ctx)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewWithConfig(cfg), nil
+
+}
+
+func NewWithConfig(cfg aws.Config) *AWS {
 	return &AWS{
 		cfg: cfg,
 	}
 }
 
-func (a *AWS) clientForRegion(region *Region) *ec2.Client {
+func (a *AWS) clientForRegion(region *detect.Region) *ec2.Client {
 
 	cfg := a.cfg.Copy()
 	cfg.Region = region.Name
@@ -33,11 +68,11 @@ func (a *AWS) clientForRegion(region *Region) *ec2.Client {
 
 }
 
-func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error) {
+func (a *AWS) Instances(ctx context.Context, region *detect.Region) ([]*detect.Instance, error) {
 
 	client := a.clientForRegion(region)
 
-	var instances []*Instance
+	var instances []*detect.Instance
 
 	paginator := ec2.NewDescribeInstanceTypesPaginator(client, &ec2.DescribeInstanceTypesInput{
 		Filters: []types.Filter{
@@ -89,7 +124,7 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 				panic("unexpected length of NetworkInfo.NetworkCards")
 			}
 
-			instance := &Instance{
+			instance := &detect.Instance{
 				Arch:       string(e.ProcessorInfo.SupportedArchitectures[0]),
 				Count:      uint(*e.VCpuInfo.DefaultCores),
 				ClockSpeed: float64(*e.ProcessorInfo.SustainedClockSpeedInGhz),
@@ -119,15 +154,14 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 }
 
 func (a *AWS) Name() string {
-	const PROVIDER = "aws"
-	return PROVIDER
+	return NAME
 }
 
-func (a *AWS) Regions(ctx context.Context) ([]*Region, error) {
+func (a *AWS) Regions(ctx context.Context) ([]*detect.Region, error) {
 
 	client := ec2.NewFromConfig(a.cfg)
 
-	var regions []*Region
+	var regions []*detect.Region
 
 	res, err := client.DescribeRegions(ctx, &ec2.DescribeRegionsInput{
 		Filters: []types.Filter{
@@ -147,9 +181,9 @@ func (a *AWS) Regions(ctx context.Context) ([]*Region, error) {
 
 	for _, region := range res.Regions {
 
-		regions = append(regions, &Region{
+		regions = append(regions, &detect.Region{
 			Name:     *region.RegionName,
-			endpoint: *region.Endpoint,
+			Endpoint: *region.Endpoint,
 			Provider: a.Name(),
 		})
 
@@ -159,7 +193,7 @@ func (a *AWS) Regions(ctx context.Context) ([]*Region, error) {
 
 }
 
-func (a *AWS) Prices(ctx context.Context, region *Region, instance *Instance) (*Prices, error) {
+func (a *AWS) Prices(ctx context.Context, region *detect.Region, instance *detect.Instance) (*detect.Prices, error) {
 
 	// looking back a week
 	const WINDOW = -24 * 7
@@ -207,7 +241,7 @@ func (a *AWS) Prices(ctx context.Context, region *Region, instance *Instance) (*
 
 	if len(prices) > 0 {
 
-		price := &Prices{
+		price := &detect.Prices{
 			AvailablityZones: uint(len(azs)),
 			Instance:         instance,
 		}
