@@ -1,7 +1,7 @@
 package detect
 
 // Devices maps known vendor-device tags to FP32 TFLOP
-var Devices = map[string]float32{ // NOTE: help with validation always welcome
+var Devices = map[string]float64{ // NOTE: help with validation always welcome
 	"AMD-Radeon Pro V520": 7.373, // https://www.techpowerup.com/gpu-specs/radeon-pro-v520.c3755
 	"NVIDIA-A100":         19.49, // https://www.techpowerup.com/gpu-specs/a100-sxm4-40-gb.c3506
 	"NVIDIA-A10G":         31.52, // https://www.techpowerup.com/gpu-specs/a10g.c3798

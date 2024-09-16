@@ -6,21 +6,21 @@ import (
 )
 
 type Instance struct {
-	Arch       string
-	ClockSpeed float32
-	Count      uint
+	Arch       string  `json:"arch"`
+	ClockSpeed float64 `json:"clock_speed"`
+	Count      uint    `json:"count"`
 	GPU        struct {
-		Count  uint
-		FP32   *float32 // TFLOPS performance
-		Memory uint64
-		Name   string
-		Vendor string
-	}
-	Memory  uint64
-	Name    string
-	Network float64
-	Region  *Region
-	Vendor  string
+		Count  uint     `json:"count"`
+		FP32   *float64 `json:"fp32 "` // TFLOPS performance
+		Memory uint64   `json:"memory"`
+		Name   string   `json:"name"`
+		Vendor string   `json:"vendor"`
+	} `json:"gpu"`
+	Memory  uint64  `json:"memory"`
+	Name    string  `json:"name"`
+	Network float64 `json:"network"`
+	Region  *Region `json:"region"`
+	Vendor  string  `json:"vendor"`
 }
 
 func (i *Instance) MeasureTFLOPS() {
@@ -37,7 +37,7 @@ func (i *Instance) MeasureTFLOPS() {
 
 	} else {
 
-		tflops = tflops * float32(i.GPU.Count)
+		tflops = tflops * float64(i.GPU.Count)
 		i.GPU.FP32 = &tflops
 
 	}

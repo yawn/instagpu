@@ -3,11 +3,12 @@ package detect
 import "fmt"
 
 type Prices struct {
-	AvailablityZones uint
-	Avg              float64
-	Instance         *Instance
-	Max              float64
-	Min              float64
+	AvailablityZones uint      `json:"availability_zones"`
+	Avg              float64   `json:"avg"`
+	Instance         *Instance `json:"instance"`
+	Max              float64   `json:"max"`
+	Min              float64   `json:"min"`
+}
 }
 
 func (p *Prices) String() string {

@@ -12,12 +12,12 @@ import (
 type Region struct {
 	endpoint string
 	Latency  struct {
-		Avg int64
-		Min int64
-		Max int64
-	}
-	Name     string
-	Provider string
+		Avg int64 `json:"avg"`
+		Min int64 `json:"min"`
+		Max int64 `json:"max"`
+	} `json:"latency"`
+	Name     string `json:"name"`
+	Provider string `json:"provider"`
 }
 
 func (r *Region) MeasureLatency(ctx context.Context) error {

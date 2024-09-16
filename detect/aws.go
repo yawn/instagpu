@@ -105,7 +105,7 @@ func (a *AWS) Instances(ctx context.Context, region *Region) ([]*Instance, error
 			instance := &Instance{
 				Arch:       string(e.ProcessorInfo.SupportedArchitectures[0]),
 				Count:      uint(*e.VCpuInfo.DefaultCores),
-				ClockSpeed: float32(*e.ProcessorInfo.SustainedClockSpeedInGhz),
+				ClockSpeed: float64(*e.ProcessorInfo.SustainedClockSpeedInGhz),
 				Memory:     uint64(*e.MemoryInfo.SizeInMiB),
 				Name:       string(e.InstanceType),
 				Network:    float64(*e.NetworkInfo.NetworkCards[0].PeakBandwidthInGbps),
