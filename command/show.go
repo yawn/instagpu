@@ -10,7 +10,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/yawn/instagpu/database"
 	"github.com/yawn/instagpu/database/filter"
-	"github.com/yawn/instagpu/detect/aws"
+	"github.com/yawn/instagpu/provider"
+	"github.com/yawn/instagpu/provider/aws"
 )
 
 var showCache bool
@@ -27,7 +28,7 @@ var showCmd = &cobra.Command{
 
 		ctx, _ := context.WithTimeout(context.Background(), showTimeout)
 
-		var providers []database.Provider
+		var providers []provider.Provider
 
 		if showProviderAWS {
 

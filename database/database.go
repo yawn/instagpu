@@ -14,12 +14,13 @@ import (
 	"github.com/pkg/errors"
 	"github.com/yawn/instagpu/database/filter"
 	"github.com/yawn/instagpu/detect"
+	"github.com/yawn/instagpu/provider"
 	"golang.org/x/sync/errgroup"
 )
 
 type Database []*detect.Prices
 
-func New(ctx context.Context, providers ...Provider) (Database, error) {
+func New(ctx context.Context, providers ...provider.Provider) (Database, error) {
 
 	wg, ctx := errgroup.WithContext(ctx)
 
