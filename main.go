@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/yawn/spottty/command"
+	"github.com/yawn/instagpu/command"
 )
 
 func main() {

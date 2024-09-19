@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const app = "spottty"
+const app = "instagpu"
 
 var rootDebug bool
 

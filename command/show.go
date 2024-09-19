@@ -8,9 +8,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/yawn/spottty/database"
-	"github.com/yawn/spottty/database/filter"
-	"github.com/yawn/spottty/detect/aws"
+	"github.com/yawn/instagpu/database"
+	"github.com/yawn/instagpu/database/filter"
+	"github.com/yawn/instagpu/detect/aws"
 )
 
 var showCache bool

@@ -2,7 +2,7 @@ package filter
 
 import (
 	"github.com/spf13/pflag"
-	"github.com/yawn/spottty/detect"
+	"github.com/yawn/instagpu/detect"
 )
 
 type Flag interface {

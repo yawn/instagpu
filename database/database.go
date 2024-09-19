@@ -12,8 +12,8 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
-	"github.com/yawn/spottty/database/filter"
-	"github.com/yawn/spottty/detect"
+	"github.com/yawn/instagpu/database/filter"
+	"github.com/yawn/instagpu/detect"
 	"golang.org/x/sync/errgroup"
 )
 

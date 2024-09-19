@@ -1,4 +1,4 @@
-module github.com/yawn/spottty
+module github.com/yawn/instagpu
 
 go 1.23.0
 

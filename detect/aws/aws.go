@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
-	"github.com/yawn/spottty/detect"
+	"github.com/yawn/instagpu/detect"
 )
 
 const NAME = "aws"

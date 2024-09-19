@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 
-	"github.com/yawn/spottty/detect"
+	"github.com/yawn/instagpu/detect"
 )
 
 type Provider interface {
