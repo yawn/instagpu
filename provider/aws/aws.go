@@ -19,7 +19,9 @@ import (
 const NAME = "aws"
 
 type AWS struct {
-	cfg aws.Config
+	cfg                aws.Config
+	instanceProfileARN string // populated by setup
+}
 }
 
 func DefaultConfig(ctx context.Context) (aws.Config, error) {
