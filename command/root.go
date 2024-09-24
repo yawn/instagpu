@@ -30,7 +30,7 @@ var rootCmd = &cobra.Command{
 
 func init() {
 
-	flags := showCmd.Flags()
+	flags := rootCmd.PersistentFlags()
 
 	flags.BoolVar(&rootDebug, "debug", false, "Enable debug logging")
 
